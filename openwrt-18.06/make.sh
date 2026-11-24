@@ -197,7 +197,13 @@ esac
 
 make package/base-files/clean
 make package/network/services/hostapd/clean
-make -j${JOBS:-32} V=s
+make -j${JOBS:-32} ${MAKE_EXTRA_FLAGS} V=s
+make_rc=$?
+
+if [ $make_rc -ne 0 ]; then
+	echo "build failed: make exit ${make_rc}"
+	exit $make_rc
+fi
 
 target_bin=$(ls -1 ${target_glob} 2>/dev/null | head -n 1)
 if [ -n "$target_bin" ] && [ -f "$target_bin" ]; then
