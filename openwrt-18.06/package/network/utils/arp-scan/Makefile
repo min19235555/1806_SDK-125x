@@ -49,15 +49,17 @@ TARGET_CFLAGS += -fPIC  -I../src -I$(STAGING_DIR)/usr/include  -O2 -Wall
 # "unknown type name pcap_t" and "dereferencing pointer to incomplete type
 # 'const struct pcap_pkthdr'".
 #
-# Pass the standard OpenWrt configure variables (cross toolchain plus the
-# target staging include/library paths) so that:
+# Pass the cross toolchain ($(TARGET_CONFIGURE_OPTS)) plus the target
+# staging include/library paths so that:
 #   - configure compiles its tests with the cross compiler, and
 #   - pcap.h is found in $(STAGING_DIR)/usr/include.
+#
+# NOTE: do not add $(CONFIGURE_ARGS) here. It carries --prefix=/usr, while
+# the install rule below expects the autoconf default prefix /usr/local.
 define Build/Configure
     (cd $(PKG_BUILD_DIR)/; rm -f configure config.h config.h.in Makefile.in ; autoreconf -ifv ;\
-		    ./configure $(TARGET_CONFIGURE_OPTS) $(CONFIGURE_ARGS) --with-pic \
-			CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
-			CXXFLAGS="$(TARGET_CXXFLAGS) $(EXTRA_CXXFLAGS)" \
+		    ./configure --with-pic --host=$(GNU_TARGET_NAME) \
+			$(TARGET_CONFIGURE_OPTS) \
 			CPPFLAGS="$(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
 			LDFLAGS="$(TARGET_LDFLAGS) $(EXTRA_LDFLAGS)";\
 			    );
@@ -73,7 +75,9 @@ endef
 
 define Package/arp-scan/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/local/bin/arp-scan $(1)/usr/bin/
+	$(if $(wildcard $(PKG_INSTALL_DIR)/usr/local/bin/arp-scan), \
+		$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/local/bin/arp-scan $(1)/usr/bin/, \
+		$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/arp-scan $(1)/usr/bin/)
 endef
 
 $(eval $(call BuildPackage,arp-scan))
