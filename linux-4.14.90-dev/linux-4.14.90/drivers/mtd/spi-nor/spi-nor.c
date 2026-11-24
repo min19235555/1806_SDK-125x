@@ -968,6 +968,9 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "en25qx64a",	INFO(0x1c7117, 0, 64 * 1024,  128, SECT_4K) },
 	{ "en25qx128a",	INFO(0x1c7118, 0, 64 * 1024,  256, SECT_4K) },
 
+	/* HuaHong -- hf25qh128ae */
+	{ "hf25qh128ae", INFO(0xa14018, 0, 64 * 1024, 256, SECT_4K) },
+
 	/* ESMT */
 	{ "f25l32pa", INFO(0x8c2016, 0, 64 * 1024, 64, SECT_4K | SPI_NOR_HAS_LOCK) },
 	{ "f25l32qa", INFO(0x8c4116, 0, 64 * 1024, 64, SECT_4K | SPI_NOR_HAS_LOCK) },

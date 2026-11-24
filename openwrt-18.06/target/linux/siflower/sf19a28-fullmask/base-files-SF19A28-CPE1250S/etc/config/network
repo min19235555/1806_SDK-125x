@@ -1,0 +1,41 @@
+config interface 'loopback'
+	option ifname 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config switch
+	option name 'switch0'
+	option reset '1'
+	option enable_vlan '1'
+
+# LAN: switch ports 1 and 2
+config switch_vlan 'lan_vlan'
+	option device 'switch0'
+	option vlan '2'
+	option ports '1 2 5t'
+
+# WAN: switch port 0
+config switch_vlan 'wan_vlan'
+	option device 'switch0'
+	option vlan '3'
+	option ports '0 5t'
+
+config interface 'lan'
+	option type 'bridge'
+	option ifname 'eth0.2'
+	option proto 'static'
+	option ipaddr '192.168.1.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+
+config interface 'wan'
+	option ifname 'eth0.3'
+	option proto 'dhcp'
+
+config interface 'wan6'
+	option ifname 'eth0.3'
+	option proto 'dhcpv6'
+
+# The 5G uplink is created and managed by QMODEM (ECM data on usb0).
+# Do not add a second DHCP client here; QMODEM binds the interface to wan.

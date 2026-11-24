@@ -41,6 +41,14 @@ config DT_SF19A28_FULLMASK_EVB
 	  The corresponding DTS file is at
 	  arch/mips/boot/dts/sf19a28_fullmask_evb.dts
 
+config DT_SF19A28_FULLMASK_CPE1250S
+	bool "Built-in device tree for sf19a28 fullmask cpe1250s (Mine 5G CPE)"
+	default n
+	select BUILTIN_DTB
+	help
+	  The corresponding DTS file is at
+	  arch/mips/boot/dts/siflower/sf19a28_fullmask_cpe1250s.dts
+
 config DT_SF19A28_FULLMASK_AC28
 	bool "Built-in device tree for sf19a28 fullmask ac28"
 	default n

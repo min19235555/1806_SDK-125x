@@ -1,0 +1,38 @@
+name: Build CPE1250S
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_type:
+        description: 'Image type: rel / flash / auto'
+        required: false
+        default: 'rel'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git-core libncurses5-dev zlib1g-dev \
+            gawk flex quilt libssl-dev xsltproc libxml-parser-perl mercurial \
+            bzr ecj cvs unzip
+      - name: Update feeds
+        working-directory: openwrt-18.06
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+      - name: Build
+        working-directory: openwrt-18.06
+        run: ./make.sh a28_cpe1250s ${{ github.event.inputs.image_type || 'rel' }}
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpe1250s-${{ github.event.inputs.image_type || 'rel' }}
+          path: openwrt-18.06/openwrt1806_*.bin
+          if-no-files-found: error

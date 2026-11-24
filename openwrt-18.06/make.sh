@@ -106,6 +106,9 @@ case ${board} in
 	a28_router_1211)
 		target_board=target/linux/siflower/sf19a28_router_1211_fullmask_def.config
 		;;
+	a28_cpe1250s)
+		target_board=target/linux/siflower/sf19a28_cpe1250s_fullmask_def.config
+		;;
 	clean)
 		echo "clean build enviroment"
 		echo "delete build dir "
