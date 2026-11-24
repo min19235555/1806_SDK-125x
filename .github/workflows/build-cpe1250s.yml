@@ -7,17 +7,29 @@ on:
         description: 'Image type: rel / flash / auto'
         required: false
         default: 'rel'
+  # Also start a build when the SDK branch receives a commit, so a fix can
+  # be validated without a manual dispatch.
+  push:
+    branches:
+      - release2.0.0
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 330
+    concurrency:
+      group: cpe1250s-build
+      cancel-in-progress: true
     env:
       # OpenWrt 18.06 prereq regex rejects gcc 10+ (Ubuntu 22.04 default is 11)
       CC: gcc-9
       CXX: g++-9
       # Keep parallelism below the runner core count to avoid OOM on package build
       JOBS: 8
+      # Keep going after a package failure so one CI run reports every
+      # broken package instead of only the first one. make.sh propagates the
+      # make exit code, so the job still fails when something is broken.
+      MAKE_EXTRA_FLAGS: -k
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,6 +56,8 @@ jobs:
       - name: Update feeds
         working-directory: openwrt-18.06
         run: |
+          # API based commits may drop the executable bit, restore it defensively
+          chmod +x scripts/feeds 2>/dev/null || true
           ./scripts/feeds update -a
           ./scripts/feeds install -a
       - name: Build
@@ -53,6 +67,24 @@ jobs:
           # API based commits may drop the executable bit, restore it defensively
           chmod +x make.sh scripts/feeds tools/scons/files/pywrap.sh 2>/dev/null || true
           ./make.sh a28_cpe1250s ${{ github.event.inputs.image_type || 'rel' }} 2>&1 | tee build.log
+      - name: Summarize build errors
+        if: always()
+        working-directory: openwrt-18.06
+        run: |
+          if [ ! -f build.log ]; then
+            echo "build.log not found"
+            exit 0
+          fi
+          echo "::group::Failing make targets"
+          grep -nE "make\[[0-9]+\]: \*\*\* \[.*Error" build.log | tail -n 40 || true
+          echo "::endgroup::"
+          echo "::group::Compiler and configure errors"
+          grep -nE "(: error: |: fatal error: |undefined reference|No such file or directory|configure: error|not found$)" build.log \
+            | grep -vE "checking |Looking for|pkg-config search path" | tail -n 80 || true
+          echo "::endgroup::"
+          echo "::group::Build tail"
+          tail -n 30 build.log || true
+          echo "::endgroup::"
       - name: Collect image
         working-directory: openwrt-18.06
         run: |
