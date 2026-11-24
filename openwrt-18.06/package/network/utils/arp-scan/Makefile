@@ -73,11 +73,19 @@ define Build/Compile
 				LDFLAGS="$(TARGET_LDFLAGS) -lpcap"
 endef
 
+# The install step must locate the built binary at runtime. A make level
+# $(wildcard $(PKG_INSTALL_DIR)/...) cannot be used here: this define is
+# expanded while the Makefile is parsed, long before the package has been
+# installed, so the wildcard always evaluates to empty and the wrong branch
+# is taken. Probe the two possible prefixes with a shell test instead, so
+# the check happens when the install recipe actually runs.
 define Package/arp-scan/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(if $(wildcard $(PKG_INSTALL_DIR)/usr/local/bin/arp-scan), \
-		$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/local/bin/arp-scan $(1)/usr/bin/, \
-		$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/arp-scan $(1)/usr/bin/)
+	if [ -f "$(PKG_INSTALL_DIR)/usr/local/bin/arp-scan" ]; then \
+		$(INSTALL_BIN) "$(PKG_INSTALL_DIR)/usr/local/bin/arp-scan" "$(1)/usr/bin/"; \
+	else \
+		$(INSTALL_BIN) "$(PKG_INSTALL_DIR)/usr/bin/arp-scan" "$(1)/usr/bin/"; \
+	fi
 endef
 
 $(eval $(call BuildPackage,arp-scan))
