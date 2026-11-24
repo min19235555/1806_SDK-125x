@@ -50,6 +50,8 @@ jobs:
         working-directory: openwrt-18.06
         run: |
           set -o pipefail
+          # API based commits may drop the executable bit, restore it defensively
+          chmod +x make.sh scripts/feeds tools/scons/files/pywrap.sh 2>/dev/null || true
           ./make.sh a28_cpe1250s ${{ github.event.inputs.image_type || 'rel' }} 2>&1 | tee build.log
       - name: Collect image
         working-directory: openwrt-18.06
