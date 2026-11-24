@@ -41,9 +41,25 @@ endef
 
 TARGET_CFLAGS += -fPIC  -I../src -I$(STAGING_DIR)/usr/include  -O2 -Wall
 
+# The configure stage has to probe for pcap.h against the target staging
+# headers. The custom configure below used to run without any of the
+# OpenWrt configure variables, so the cross compiler was never told where
+# the libpcap headers live and the probe failed. HAVE_PCAP_H stayed
+# undefined and arp-scan.h was then compiled without <pcap.h>, producing
+# "unknown type name pcap_t" and "dereferencing pointer to incomplete type
+# 'const struct pcap_pkthdr'".
+#
+# Pass the standard OpenWrt configure variables (cross toolchain plus the
+# target staging include/library paths) so that:
+#   - configure compiles its tests with the cross compiler, and
+#   - pcap.h is found in $(STAGING_DIR)/usr/include.
 define Build/Configure
     (cd $(PKG_BUILD_DIR)/; rm -f configure config.h config.h.in Makefile.in ; autoreconf -ifv ;\
-		    ./configure --with-pic --host=$(GNU_TARGET_NAME);\
+		    ./configure $(TARGET_CONFIGURE_OPTS) $(CONFIGURE_ARGS) --with-pic \
+			CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
+			CXXFLAGS="$(TARGET_CXXFLAGS) $(EXTRA_CXXFLAGS)" \
+			CPPFLAGS="$(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
+			LDFLAGS="$(TARGET_LDFLAGS) $(EXTRA_LDFLAGS)";\
 			    );
 endef
 
