@@ -19,7 +19,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git-core libncurses5-dev zlib1g-dev \
+          sudo apt-get install -y build-essential gcc-9 g++-9 git-core libncurses5-dev zlib1g-dev \
             gawk flex quilt libssl-dev xsltproc libxml-parser-perl mercurial \
             bzr ecj cvs unzip
       - name: Update feeds
@@ -29,6 +29,10 @@ jobs:
           ./scripts/feeds install -a
       - name: Build
         working-directory: openwrt-18.06
+        env:
+          # OpenWrt 18.06 prereq regex rejects gcc 10+ (Ubuntu 22.04 default is 11)
+          CC: gcc-9
+          CXX: g++-9
         run: ./make.sh a28_cpe1250s ${{ github.event.inputs.image_type || 'rel' }}
       - name: Collect image
         working-directory: openwrt-18.06
