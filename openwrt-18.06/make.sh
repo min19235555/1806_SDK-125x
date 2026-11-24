@@ -136,7 +136,10 @@ else
 	prefix=openwrt1806_${branch}_${board}_${chip}_${chip_ver}_${imgtype}_${version}
 fi
 
-target_bin="bin/targets/siflower/openwrt-siflower-${chip}-${chip_ver}-squashfs-sysupgrade.bin"
+# The firmware image is written by OpenWrt into bin/targets/<target>/<subtarget>/
+# and its name embeds the dist name, the version and (optionally) the device
+# profile, so it is resolved by glob instead of by a hard coded path.
+target_glob="bin/targets/siflower/*/*squashfs-sysupgrade.bin"
 
 echo "prefix is ${prefix}"
 #set up version.mk
@@ -172,7 +175,7 @@ else
 	cp $target_board .config
 fi
 
-rm $target_bin
+rm -f ${target_glob}
 
 case ${imgtype} in
 	auto)
@@ -194,12 +197,15 @@ esac
 
 make package/base-files/clean
 make package/network/services/hostapd/clean
-make -j32 V=s
+make -j${JOBS:-32} V=s
 
-if [ -f $target_bin ]; then
-	cp $target_bin ${prefix}.bin
+target_bin=$(ls -1 ${target_glob} 2>/dev/null | head -n 1)
+if [ -n "$target_bin" ] && [ -f "$target_bin" ]; then
+	cp "$target_bin" ${prefix}.bin
+	echo "build ok: ${target_bin} -> ${prefix}.bin"
 else
 	echo "build fail, don't get target_bin"
+	exit 1
 fi
 
 echo "build end"
