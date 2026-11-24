@@ -195,6 +195,29 @@ case ${imgtype} in
 		;;
 esac
 
+# Resolve the package configuration before building.
+#
+# include/toplevel.mk only *compares* .config against the kconfig resolution
+# (conf --defconfig=tmp/.config) and prints "your configuration is out of
+# sync" when they differ - it never writes the resolved config back. A def
+# config copied verbatim therefore keeps every "+dependency" package
+# unselected, because kconfig "select" is what turns a "+pkg" entry in a
+# package DEPENDS line into CONFIG_PACKAGE_pkg=y.
+#
+# qmodem declares its whole dependency tree that way (kmod-usb2, kmod-usb3,
+# kmod-usb-serial*, kmod-usb-net*, coreutils, jq, ...) and luci-app-qmodem-next
+# expands it into the ipkg Depends field, so the image assembly step died with
+# "satisfy_dependencies_for: Cannot satisfy the following dependencies for
+# luci-app-qmodem-next". Running "make defconfig" re-resolves .config so the
+# select chain is applied.
+echo "resolving package configuration (make defconfig)"
+make defconfig
+defconfig_rc=$?
+if [ $defconfig_rc -ne 0 ]; then
+	echo "defconfig failed: make exit ${defconfig_rc}"
+	exit $defconfig_rc
+fi
+
 make package/base-files/clean
 make package/network/services/hostapd/clean
 make -j${JOBS:-32} ${MAKE_EXTRA_FLAGS} V=s
