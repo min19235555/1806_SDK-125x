@@ -139,7 +139,16 @@ fi
 # The firmware image is written by OpenWrt into bin/targets/<target>/<subtarget>/
 # and its name embeds the dist name, the version and (optionally) the device
 # profile, so it is resolved by glob instead of by a hard coded path.
-target_glob="bin/targets/siflower/*/*squashfs-sysupgrade.bin"
+#
+# This SDK does not use the standard two level layout: target/linux/siflower/image
+# copies the image to $(BIN_DIR)/$(IMG_PREFIX)-squashfs-sysupgrade.bin and the
+# subtarget level of $(BIN_DIR) is empty here, so the file lands directly in
+# bin/targets/siflower/. A fixed "siflower/*/*squashfs-sysupgrade.bin" glob
+# therefore matched nothing and the build was reported as failed ("build fail,
+# don't get target_bin") even though the image had already been produced. The
+# image is therefore looked up recursively, which covers both layouts.
+target_dir="bin/targets/siflower"
+target_name="*squashfs-sysupgrade.bin"
 
 echo "prefix is ${prefix}"
 #set up version.mk
@@ -175,7 +184,7 @@ else
 	cp $target_board .config
 fi
 
-rm -f ${target_glob}
+find ${target_dir} -name "${target_name}" -type f -exec rm -f {} + 2>/dev/null || true
 
 case ${imgtype} in
 	auto)
@@ -228,12 +237,14 @@ if [ $make_rc -ne 0 ]; then
 	exit $make_rc
 fi
 
-target_bin=$(ls -1 ${target_glob} 2>/dev/null | head -n 1)
+target_bin=$(find ${target_dir} -name "${target_name}" -type f 2>/dev/null | head -n 1 || true)
 if [ -n "$target_bin" ] && [ -f "$target_bin" ]; then
 	cp "$target_bin" ${prefix}.bin
 	echo "build ok: ${target_bin} -> ${prefix}.bin"
 else
 	echo "build fail, don't get target_bin"
+	echo "content of ${target_dir}:"
+	find ${target_dir} -maxdepth 4 -type f 2>/dev/null | head -n 50 || true
 	exit 1
 fi
 
