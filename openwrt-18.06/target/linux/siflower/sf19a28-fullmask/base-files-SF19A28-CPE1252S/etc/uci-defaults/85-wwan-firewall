@@ -1,0 +1,10 @@
+#!/bin/sh
+# Put the modem uplink into the wan firewall zone on first boot.
+[ -f /etc/config/firewall ] || exit 0
+uci -q get firewall.wan >/dev/null || exit 0
+
+uci -q add_list firewall.wan.network='wwan'
+uci -q add_list firewall.wan.network='wwan6'
+uci -q commit firewall
+
+exit 0

@@ -1,0 +1,190 @@
+/dts-v1/;
+
+#include "sf19a28_fullmask.dtsi"
+#include "sf19a28-thermal_common.dtsi"
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "siflower,sf19a28-soc";
+	model = "sf19a28-cpe1252s";
+
+	aliases {
+		led-boot = &wifi_led;
+		led-failsafe = &wifi_led;
+		led-running = &wifi_led;
+		led-upgrade = &wifi_led;
+	};
+};
+
+&gmac {
+	status = "okay";
+	delay = <0x40 0x20>;
+	esw-rst-gpio = <0>;
+};
+
+&spi2 {
+	status = "okay";
+	dmas = <&gdma 10
+		&gdma 11>;
+	dma-names = "tx", "rx";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	hf25qh128ae@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <33000000>;
+
+		bank-width = <2>;
+		device-width = <2>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		partition@0 {
+			label = "spl-loader";
+			reg = <0x0 0x20000>;
+			read-only;
+		};
+
+		partition@20000 {
+			label = "u-boot";
+			reg = <0x20000 0x60000>;
+		};
+
+		partition@80000 {
+			label = "u-boot-env";
+			reg = <0x80000 0x10000>;
+		};
+
+		factory:partition@90000 {
+			label = "factory";
+			reg = <0x90000 0x10000>;
+		};
+
+		partition@a0000 {
+			label = "product";
+			reg = <0xa0000 0x10000>;
+		};
+
+		partition@b0000 {
+			label = "firmware";
+			reg = <0xb0000 0xec0000>;
+		};
+
+		/* CPE1252S vendor layout: 64 KiB custom area before pcba. */
+		partition@f70000 {
+			label = "custom";
+			reg = <0xf70000 0x10000>;
+		};
+
+		partition@f80000 {
+			label = "pcba";
+			reg = <0xf80000 0x80000>;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&timer0 {
+	status = "okay";
+};
+
+&usb_phy {
+	status = "okay";
+};
+
+&usb {
+	status = "okay";
+};
+
+&wifi_rf {
+	status = "okay";
+	/* 5G uses an external PA on this board */
+	force_expa = <1>;
+	/* both antennas are calibrated in the factory partition */
+	dual-antenna-calibrate = <1>;
+	hb-rf-coex = <2>;
+	hb-base-gain = <10>;
+};
+
+&wifi_lb {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+	smp-affinity = <2>;
+};
+
+&wifi_hb {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+	smp-affinity = <3>;
+};
+
+/*
+ * CPE1252S tri-SIM GPIO matrix (stock firmware /etc/config/system):
+ *   usim1=139, esim1=141, esim2=138, active_pos2=140, disable_usim=142
+ * Driven from userspace by /usr/bin/simctl (package sim-switch).
+ * Kept as plain GPIO so no extra pinctrl node is required.
+ */
+
+&gpio_keys {
+	status = "okay";
+
+	restart@27 {
+		label = "Key Restart";
+		linux,code = <0x198>; /* KEY_RESTART */
+		gpios = <&gpio 27 1>;
+		poll-interval = <10>;
+		debounce-interval = <20>;
+	};
+
+	wps@12 {
+		label = "Key WPS";
+		linux,code = <0x211>; /* KEY_WPS_BUTTON */
+		gpios = <&gpio 12 1>;
+		poll-interval = <10>;
+		debounce-interval = <20>;
+	};
+};
+
+&leds {
+	status = "okay";
+
+	wifi_led: wifi {
+		label = "cpe1252s:green:wifi";
+		gpios = <&gpio 0 1>;
+		default-state = "on";
+	};
+
+	lte_green: lte-green {
+		label = "cpe1252s:green:lte";
+		gpios = <&gpio 1 1>;
+		default-state = "off";
+	};
+
+	lte_red: lte-red {
+		label = "cpe1252s:red:lte";
+		gpios = <&gpio 2 1>;
+		default-state = "on";
+	};
+
+	nr_green: nr-green {
+		label = "cpe1252s:green:5g";
+		gpios = <&gpio 3 1>;
+		default-state = "off";
+	};
+
+	nr_red: nr-red {
+		label = "cpe1252s:red:5g";
+		gpios = <&gpio 4 1>;
+		default-state = "on";
+	};
+};

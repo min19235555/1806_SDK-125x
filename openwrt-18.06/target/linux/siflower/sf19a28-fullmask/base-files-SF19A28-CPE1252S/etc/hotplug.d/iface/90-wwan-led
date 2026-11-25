@@ -1,0 +1,23 @@
+#!/bin/sh
+# 5G/LTE status LEDs: green when the WWAN interface is up, red otherwise.
+[ "$INTERFACE" = "wwan" ] || exit 0
+
+G5G=/sys/class/leds/cpe1250s:green:5g/brightness
+R5G=/sys/class/leds/cpe1250s:red:5g/brightness
+G4G=/sys/class/leds/cpe1250s:green:lte/brightness
+R4G=/sys/class/leds/cpe1250s:red:lte/brightness
+
+case "$ACTION" in
+	ifup|ifupdate)
+		echo 1 > "$G5G" 2>/dev/null
+		echo 0 > "$R5G" 2>/dev/null
+		echo 1 > "$G4G" 2>/dev/null
+		echo 0 > "$R4G" 2>/dev/null
+		;;
+	ifdown)
+		echo 0 > "$G5G" 2>/dev/null
+		echo 1 > "$R5G" 2>/dev/null
+		echo 0 > "$G4G" 2>/dev/null
+		echo 1 > "$R4G" 2>/dev/null
+		;;
+esac

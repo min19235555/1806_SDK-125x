@@ -1,0 +1,5 @@
+#!/bin/sh
+# Network is provided by /etc/config/network for this board.
+# Keep the generic OpenWrt 99-default_network from generating a second set
+# of interfaces on top of it.
+exit 0

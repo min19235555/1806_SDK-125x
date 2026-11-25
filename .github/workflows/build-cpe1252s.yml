@@ -1,0 +1,106 @@
+name: Build CPE1252S
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_type:
+        description: 'Image type: rel / flash / auto'
+        required: false
+        default: 'rel'
+  # Also start a build when the SDK branch receives a commit, so a fix can
+  # be validated without a manual dispatch.
+  push:
+    branches:
+      - release2.0.0
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 330
+    concurrency:
+      group: cpe1252s-build
+      cancel-in-progress: true
+    env:
+      # OpenWrt 18.06 prereq regex rejects gcc 10+ (Ubuntu 22.04 default is 11)
+      CC: gcc-9
+      CXX: g++-9
+      # Keep parallelism below the runner core count to avoid OOM on package build
+      JOBS: 8
+      # Keep going after a package failure so one CI run reports every
+      # broken package instead of only the first one. make.sh propagates the
+      # make exit code, so the job still fails when something is broken.
+      MAKE_EXTRA_FLAGS: -k
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+          sparse-checkout: |
+            openwrt-18.06
+            linux-4.14.90-dev/linux-4.14.90
+            .github
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential gcc-9 g++-9 git-core libncurses5-dev zlib1g-dev \
+            gawk flex quilt libssl-dev xsltproc libxml-parser-perl mercurial \
+            bzr ecj cvs unzip python3 python3-distutils python-is-python3
+          # The vendored SCons host tool prefers a Python 2 interpreter. Ubuntu
+          # 22.04 does not ship one, so install it when available; tools/scons
+          # falls back to python3 when it is missing.
+          sudo apt-get install -y python2 python2.7 || \
+            echo "::warning::python2 is not available from apt, SCons will use python3"
+          python3 -V
+          (python2 -V 2>&1 || echo "no python2")
+      - name: Update feeds
+        working-directory: openwrt-18.06
+        run: |
+          # API based commits may drop the executable bit, restore it defensively
+          chmod +x scripts/feeds 2>/dev/null || true
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+      - name: Build
+        working-directory: openwrt-18.06
+        run: |
+          set -o pipefail
+          # API based commits may drop the executable bit, restore it defensively
+          chmod +x make.sh scripts/feeds tools/scons/files/pywrap.sh 2>/dev/null || true
+          ./make.sh a28_cpe1252s ${{ github.event.inputs.image_type || 'rel' }} 2>&1 | tee build.log
+      - name: Summarize build errors
+        if: always()
+        working-directory: openwrt-18.06
+        run: |
+          if [ ! -f build.log ]; then
+            echo "build.log not found"
+            exit 0
+          fi
+          echo "::group::Failing make targets"
+          grep -nE "make\[[0-9]+\]: \*\*\* \[.*Error" build.log | tail -n 40 || true
+          echo "::endgroup::"
+          echo "::group::Compiler and configure errors"
+          grep -nE "(: error: |: fatal error: |undefined reference|No such file or directory|configure: error|not found$)" build.log \
+            | grep -vE "checking |Looking for|pkg-config search path" | tail -n 80 || true
+          echo "::endgroup::"
+          echo "::group::Build tail"
+          tail -n 30 build.log || true
+          echo "::endgroup::"
+      - name: Collect image
+        working-directory: openwrt-18.06
+        run: |
+          set -euo pipefail
+          img=$(find bin/targets -type f \( -name '*squashfs-sysupgrade.bin' -o -name 'openwrt1806_*.bin' \) | head -n 1)
+          if [ -z "$img" ]; then
+            echo "No firmware image found under bin/targets" >&2
+            find bin/targets -maxdepth 4 -type f 2>/dev/null | head -n 50 >&2 || true
+            exit 1
+          fi
+          echo "Found image: $img"
+          cp "$img" cpe1252s-sysupgrade.bin
+          ls -l cpe1252s-sysupgrade.bin
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpe1252s-${{ github.event.inputs.image_type || 'rel' }}
+          path: openwrt-18.06/cpe1252s-sysupgrade.bin
+          if-no-files-found: error

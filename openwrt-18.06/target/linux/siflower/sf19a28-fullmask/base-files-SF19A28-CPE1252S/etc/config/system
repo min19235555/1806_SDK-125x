@@ -1,0 +1,40 @@
+config system
+	option hostname 'OpenWrt-CPE1252S'
+	option timezone 'CST-8'
+	option zonename 'Asia/Shanghai'
+
+config timeserver 'ntp'
+	option enabled '1'
+	option enable_server '0'
+	list server '0.cn.pool.ntp.org'
+	list server '1.cn.pool.ntp.org'
+	list server '2.cn.pool.ntp.org'
+	list server '3.cn.pool.ntp.org'
+
+# CPE1252S tri-SIM GPIO matrix (from the stock firmware).
+# Managed by /usr/bin/simctl (package sim-switch); values here are the
+# power-on defaults and are not applied by gpio_switch at boot.
+config gpio_switch 'usim1'
+	option name 'usim1'
+	option gpio_pin '139'
+	option value '0'
+
+config gpio_switch 'esim1'
+	option name 'esim1'
+	option gpio_pin '141'
+	option value '0'
+
+config gpio_switch 'esim2'
+	option name 'esim2'
+	option gpio_pin '138'
+	option value '0'
+
+config gpio_switch 'active_pos2'
+	option name 'active_pos2'
+	option gpio_pin '140'
+	option value '0'
+
+config gpio_switch 'disable_usim'
+	option name 'disable_usim'
+	option gpio_pin '142'
+	option value '0'
