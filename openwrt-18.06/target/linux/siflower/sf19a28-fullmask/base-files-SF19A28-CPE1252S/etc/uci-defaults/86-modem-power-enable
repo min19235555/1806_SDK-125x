@@ -1,5 +1,0 @@
-#!/bin/sh
-# Enable the CPE1252S modem power sequence on first boot.
-/etc/init.d/modem-power enable >/dev/null 2>&1
-rm -f "$0"
-exit 0

@@ -174,4 +174,22 @@
 		gpios = <&gpio 4 1>;
 		default-state = "on";
 	};
+
+	/*
+	 * Modem power-up is done in-kernel at probe time, no userspace script.
+	 * GPIO46 = module ON/OFF (high = on), GPIO47 = RESET_N (active low,
+	 * high = released from reset). "default-state = on" makes leds-gpio
+	 * drive both lines high as soon as the driver probes.
+	 */
+	modem_on: modem-on {
+		label = "modem:on";
+		gpios = <&gpio 46 0>;
+		default-state = "on";
+	};
+
+	modem_reset: modem-reset {
+		label = "modem:reset";
+		gpios = <&gpio 47 0>;
+		default-state = "on";
+	};
 };
