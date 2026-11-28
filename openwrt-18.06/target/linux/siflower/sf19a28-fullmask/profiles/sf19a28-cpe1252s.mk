@@ -24,7 +24,7 @@ define Profile/SF19A28-CPE1252S
 	kmod-usb-serial-wwan \
 	kmod-usb-wdm \
 	qmodem \
-	luci-app-qmodem-next \
+	luci-app-qmodem \
 	luci-app-sim-switch \
 	sim-switch
 endef

@@ -24,7 +24,7 @@ define Profile/SF19A28-CPE1250S
 	kmod-usb-serial-wwan \
 	kmod-usb-wdm \
 	qmodem \
-	luci-app-qmodem-next
+	luci-app-qmodem
 endef
 
 define Profile/SF19A28-CPE1250S/Description
